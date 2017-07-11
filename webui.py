@@ -15,6 +15,7 @@ db = SQLAlchemy(app)
 
 from fandb import Settings, SensorData, StatData
 
+# test
 
 # @app.route("/")
 # def hello():
