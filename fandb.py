@@ -4,7 +4,15 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/www/fancontrol/fancontrol.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 'False'
 db = SQLAlchemy(app)
+
+
+def dump_datetime(value):
+    """Deserialize datetime object into string form for JSON processing."""
+    if value is None:
+        return None
+    return [value.strftime("%Y-%m-%d"), value.strftime("%H:%M:%S")]
 
 
 class Settings(db.Model):
@@ -65,6 +73,28 @@ class SensorData(db.Model):
     #     self.prpm = sensordata[13]
     #     self.watts = sensordata[14]
     #     self.target = sensordata[15]
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        # return {
+        #     'id': self.id,
+        #     'date_timet': dump_datetime(self.date_time),
+        #     'wtemp': self.wtemp
+        #     # This is an example how to deal with Many2Many relations
+        #     # 'many2many': self.serialize_many2many
+        # }
+        return {
+            "c": [{"v": dump_datetime(self.date_time), "f": None}, {"v": self.wtemp, "f": None}]
+        }
+
+    # @property
+    # def serialize_many2many(self):
+    #     """
+    #     Return object's relations in easily serializeable format.
+    #     NB! Calls many2many's serialize property.
+    #     """
+    #     return [item.serialize for item in self.many2many]
 
 
 class StatData(db.Model):
