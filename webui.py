@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, render_template, url_for
-from flask_googlecharts import GoogleCharts, BarChart, MaterialLineChart
+from flask_googlecharts import GoogleCharts, MaterialLineChart
 from flask_googlecharts.utils import prep_data
 from flask_sqlalchemy import SQLAlchemy
 # from bokeh.plotting import figure
@@ -87,18 +87,44 @@ from fandb import Settings, SensorData, StatData
 charts = GoogleCharts(app)
 
 
-@app.route("/data")
-def data():
+# def prep_data(datum):
+#     # type: (dict) -> dict
+#     """Takes a dict intended to be converted to JSON for use with Google Charts and transforms date and datetime
+#     into date string representations as described here:
+#
+#     https://developers.google.com/chart/interactive/docs/datesandtimes
+#
+#     TODO:  Implement Timeofday formatting"""
+#
+#     for row in datum['rows']:
+#         for val in row['c']:
+#             if isinstance(val['v'], datetime.datetime):
+#                 val['v'] = "Date({}, {}, {}, {}, {}, {}, {})".format(val['v'].year,
+#                                                                      val['v'].month - 1,  # JS Dates are 0-based
+#                                                                      val['v'].day,
+#                                                                      val['v'].hour,
+#                                                                      val['v'].minute,
+#                                                                      val['v'].second,
+#                                                                      val['v'].microsecond)
+#             elif isinstance(val['v'], datetime.date):
+#                 val['v'] = "Date({}, {}, {})".format(val['v'].year,
+#                                                      val['v'].month - 1,  # JS Dates are 0-based
+#                                                      val['v'].day)
+#     return datum
 
-    d = {"cols": [{"id": "", "label": "Date", "pattern": "", "type": "date"},
-                  {"id": "", "label": "Spectators", "pattern": "", "type": "number"}],
-         "rows": [{"c": [{"v": datetime.date(2016, 5, 1), "f": None}, {"v": 3987, "f": None}]},
-                  {"c": [{"v": datetime.date(2016, 5, 2), "f": None}, {"v": 6137, "f": None}]},
-                  {"c": [{"v": datetime.date(2016, 5, 3), "f": None}, {"v": 9216, "f": None}]},
-                  {"c": [{"v": datetime.date(2016, 5, 4), "f": None}, {"v": 22401, "f": None}]},
-                  {"c": [{"v": datetime.date(2016, 5, 5), "f": None}, {"v": 24587, "f": None}]}]}
 
-    return jsonify(prep_data(d))
+# @app.route("/data")
+# def data():
+#
+#     d = {"cols": [{"id": "", "label": "Date", "pattern": "", "type": "date"},
+#                   {"id": "", "label": "Spectators", "pattern": "", "type": "number"}],
+#          "rows": [{"c": [{"v": datetime.date(2016, 5, 1), "f": None}, {"v": 3987, "f": None}]},
+#                   {"c": [{"v": datetime.date(2016, 5, 2), "f": None}, {"v": 6137, "f": None}]},
+#                   {"c": [{"v": datetime.date(2016, 5, 3), "f": None}, {"v": 9216, "f": None}]},
+#                   {"c": [{"v": datetime.date(2016, 5, 4), "f": None}, {"v": 22401, "f": None}]},
+#                   {"c": [{"v": datetime.date(2016, 5, 5), "f": None}, {"v": 24587, "f": None}]}]}
+#
+#     return jsonify(prep_data(d))
 
 
 @app.route("/sql")
@@ -106,7 +132,7 @@ def sql():
     # dates = []
     wt = []
 
-    starttime = datetime.datetime.today() - datetime.timedelta(minutes=1)
+    starttime = datetime.datetime.today() - datetime.timedelta(minutes=5)
     for row in db.session.query(SensorData).filter(SensorData.date_time > starttime).all():
         # dates.append(row.date_time)
         wt.append(row.serialize)
@@ -120,33 +146,33 @@ def sql():
 
 @app.route("/")
 def index():
-    hot_dog_chart = BarChart("hot_dogs", options={"title": "Contest Results",
-                                                  "width": 500,
-                                                  "height": 300})
-
-    hot_dog_chart.add_column("string", "Competitor")
-    hot_dog_chart.add_column("number", "Hot Dogs")
-    hot_dog_chart.add_rows([["Matthew Stonie", 62],
-                            ["Joey Chestnut", 60],
-                            ["Eater X", 35.5],
-                            ["Erik Denmark", 33],
-                            ["Adrian Morgan", 31]])
-
-    charts.register(hot_dog_chart)
-
-    spectators_chart = MaterialLineChart("spectators",
-                                         options={"title": "Contest Spectators",
-                                                  "width": 500,
-                                                  "height": 300},
-                                         data_url=url_for('data'))
-
-    charts.register(spectators_chart)
+    # hot_dog_chart = BarChart("hot_dogs", options={"title": "Contest Results",
+    #                                               "width": 500,
+    #                                               "height": 300})
+    #
+    # hot_dog_chart.add_column("string", "Competitor")
+    # hot_dog_chart.add_column("number", "Hot Dogs")
+    # hot_dog_chart.add_rows([["Matthew Stonie", 62],
+    #                         ["Joey Chestnut", 60],
+    #                         ["Eater X", 35.5],
+    #                         ["Erik Denmark", 33],
+    #                         ["Adrian Morgan", 31]])
+    #
+    # charts.register(hot_dog_chart)
+    #
+    # spectators_chart = MaterialLineChart("spectators",
+    #                                      options={"title": "Contest Spectators",
+    #                                               "width": 500,
+    #                                               "height": 300},
+    #                                      data_url=url_for('data'))
+    #
+    # charts.register(spectators_chart)
 
     temp_chart = MaterialLineChart("temps",
-                                         options={"title": "Water Temperature",
-                                                  "width": 500,
-                                                  "height": 300},
-                                         data_url=url_for('sql'))
+                                   options={"title": "Water Temperature",
+                                            "width": 800,
+                                            "height": 600},
+                                   data_url=url_for('sql'))
 
     charts.register(temp_chart)
 

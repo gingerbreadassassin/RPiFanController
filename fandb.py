@@ -85,7 +85,7 @@ class SensorData(db.Model):
         #     # 'many2many': self.serialize_many2many
         # }
         return {
-            "c": [{"v": dump_datetime(self.date_time), "f": None}, {"v": self.wtemp, "f": None}]
+            "c": [{"v": self.date_time, "f": None}, {"v": self.wtemp, "f": None}]
         }
 
     # @property
