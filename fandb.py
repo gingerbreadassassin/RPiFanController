@@ -12,7 +12,7 @@ def dump_datetime(value):
     """Deserialize datetime object into string form for JSON processing."""
     if value is None:
         return None
-    return [value.strftime("%Y-%m-%d"), value.strftime("%H:%M:%S")]
+    return value.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class Settings(db.Model):
@@ -87,6 +87,14 @@ class SensorData(db.Model):
         return {
             "c": [{"v": self.date_time, "f": None}, {"v": self.wtemp, "f": None}]
         }
+
+    @property
+    def strdate(self):
+        return dump_datetime(self.date_time)
+
+    @property
+    def getvals(self):
+        return [self.wtemp]
 
     # @property
     # def serialize_many2many(self):

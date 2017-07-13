@@ -3,6 +3,7 @@ from flask_googlecharts import GoogleCharts, LineChart
 from flask_googlecharts.utils import prep_data
 from flask_sqlalchemy import SQLAlchemy
 from fandb import SensorData
+from gpcharts import figure
 import datetime
 
 app = Flask(__name__)
@@ -30,8 +31,8 @@ def sql():
     return jsonify(prep_data(d))
 
 
-@app.route("/")
-def index():
+@app.route("/fgcharts")
+def fgcharts():
 
     temp_chart = LineChart("temps",
                            options={"title": "Water Temperature",
@@ -47,6 +48,25 @@ def index():
 
     return render_template("index.html")
 
+
+@app.route("/gpcharts")
+def gpcharts():
+    fig = figure()
+    fig.title = 'Water Temp'
+    fig.ylabel = 'Temperature'
+    fig.height = 800
+    fig.width = 1280
+    xVals = ['Dates']
+    yVals = [['Water']]
+
+    starttime = datetime.datetime.today() - datetime.timedelta(hours=1)
+    for row in db.session.query(SensorData).filter(SensorData.date_time > starttime).all():
+        xVals.append(row.strdate)
+        yVals.append(row.getvals)
+
+    fig.plot(xVals, yVals)
+
+    return str(fig)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, debug=True)
