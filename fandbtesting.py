@@ -36,7 +36,7 @@ def prep_data(data):
                                                      val['v'].day)
     return data
 
-json.JSONEncoder
+
 def sql():
     wt = []
 
