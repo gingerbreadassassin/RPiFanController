@@ -1,140 +1,93 @@
-import json
-from urllib.request import urlopen
-from flask import Flask, jsonify, render_template, url_for
-from flask_googlecharts import GoogleCharts, LineChart
-from flask_googlecharts.utils import prep_data
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
-
+from scipy.signal import savgol_filter
 from fandb import SensorData
-from gpcharts import figure
-import plotlywrapper
 import datetime
+import pytz
 from plotly.offline import plot
 from plotly.graph_objs import Scattergl
 
 app = Flask(__name__)
-app.debug = True  # Make this False if you are no longer debugging
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/www/fancontrol/fancontrol.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 'False'
 db = SQLAlchemy(app)
 
 
-charts = GoogleCharts(app)
+@app.route("/smoothplotly")
+def smoothplotly():
 
-
-@app.route("/sql")
-def sql():
-    wt = []
-
-    starttime = datetime.datetime.today() - datetime.timedelta(hours=1)
-    for row in db.session.query(SensorData).filter(SensorData.date_time > starttime).all():
-        wt.append(row.serialize)
-
-    d = {"cols": [{"id": "", "label": "Date", "pattern": "", "type": "date"},
-                  {"id": "", "label": "Water Temp", "pattern": "", "type": "number"}],
-         "rows": wt}
-
-    return jsonify(prep_data(d))
-
-
-@app.route("/fgcharts")
-def fgcharts():
-
-    temp_chart = LineChart("temps",
-                           options={"title": "Water Temperature",
-                                    "width": 1280,
-                                    "height": 600,
-                                    "hAxis": {"format": "k:m:S"},
-                                    "vAxis": {"format": "decimal",
-                                              "minValue": "0",
-                                              "maxValue": "100"}},
-                           data_url=url_for('sql'))
-
-    charts.register(temp_chart)
-
-    return render_template("index.html")
-
-
-@app.route("/gpcharts")
-def gpcharts():
-    fig = figure()
-    fig.title = 'Water Temp'
-    fig.ylabel = 'Temperature'
-    fig.height = 800
-    fig.width = 1280
-    xVals = ['Dates']
-    yVals = [['Water']]
-
-    starttime = datetime.datetime.today() - datetime.timedelta(hours=1)
-    for row in db.session.query(SensorData).filter(SensorData.date_time > starttime).all():
-        xVals.append(row.strdate)
-        yVals.append(row.getvals)
-
-    fig.plot(xVals, yVals)
-
-    return str(fig)
-
-
-@app.route("/plotly")
-def plotly():
-
-    xvals = []
-    yvals = []
+    timestamps = []
+    wtemps = []
+    ints = []
+    ext1s = []
+    ext2s = []
+    targets = []
+    dcs = []
 
     starttime = datetime.datetime.today() - datetime.timedelta(hours=12)
     for row in db.session.query(SensorData).filter(SensorData.date_time > starttime).all():
-        xvals.append(row.date_time)
-        yvals.append(row.wtemp)
+        timestamps.append(row.date_time.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("America/Chicago")).replace(tzinfo=None))
+        wtemps.append(row.wtemp)
+        ints.append(row.intemp)
+        ext1s.append(row.extemp1)
+        ext2s.append(row.extemp2)
+        targets.append(row.target)
+        dcs.append(row.indc)
 
     trace0 = Scattergl(
-        x=xvals,
-        y=yvals,
-        mode='lines+markers',
-        name='Water Temps'
+        x=timestamps,
+        y=savgol_filter(wtemps, 51, 3),
+        mode='lines',
+        name='Water Temp',
+        line=dict(color='rgba(57, 106, 177)')
     )
 
-    data = [trace0]
+    trace1 = Scattergl(
+        x=timestamps,
+        y=targets,
+        mode='lines',
+        name='Target Temp',
+        line=dict(color='rgba(204, 37, 41)')
+    )
+
+    trace2 = Scattergl(
+        x=timestamps,
+        y=savgol_filter(dcs, 51, 3),
+        mode='lines',
+        name='Duty Cycle',
+        line=dict(color='rgba(148, 139, 61)')
+    )
+
+    trace3 = Scattergl(
+        x=timestamps,
+        y=savgol_filter(ints, 51, 3),
+        mode='lines',
+        name='Intake Temp',
+        line=dict(color='rgba(62, 150, 81)')
+    )
+
+    trace4 = Scattergl(
+        x=timestamps,
+        y=savgol_filter(ext1s, 51, 3),
+        mode='lines',
+        name='Top Exhaust Temp',
+        line=dict(color='rgba(107, 76, 154)')
+    )
+
+    trace5 = Scattergl(
+        x=timestamps,
+        y=savgol_filter(ext2s, 51, 3),
+        mode='lines',
+        name='Rear Exhaust Temp',
+        line=dict(color='rgba(218, 124, 48)')
+    )
+
+    data = [trace0, trace1, trace2, trace3, trace4, trace5]
 
     fig = plot(data, output_type='div')
 
     return render_template('plotly.html', div_placeholder=Markup(fig))
-
-
-@app.route("/pwrap")
-def pwrap():
-
-    xvals = []
-    yvals = []
-
-    starttime = datetime.datetime.today() - datetime.timedelta(hours=1)
-    for row in db.session.query(SensorData).filter(SensorData.date_time > starttime).all():
-        xvals.append(row.date_time)
-        yvals.append(row.wtemp)
-
-    graph = plotlywrapper.line(xvals, yvals)
-    graph.ylim(0, 100)
-
-    return graph.show()
-
-
-def getExchangeRates():
-    rates = []
-    response = urlopen('http://api.fixer.io/latest')
-    data = response.read().decode("utf-8")
-    rdata = json.loads(data, parse_float=float)
-
-    rates.append(rdata['rates']['USD'])
-    rates.append(rdata['rates']['GBP'])
-    rates.append(rdata['rates']['HKD'])
-    rates.append(rdata['rates']['AUD'])
-    return rates
-
-
-@app.route("/gchart")
-def gchart():
-    rates = getExchangeRates()
-    return render_template('gchart.html', **locals())
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, debug=True)
