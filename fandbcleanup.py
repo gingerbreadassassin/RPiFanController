@@ -1,16 +1,9 @@
-from fansqla import SensorData
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import datetime
+from pymongo import MongoClient
 
-engine = create_engine('sqlite:////var/www/fancontrol/fancontrol.db')
-Session = sessionmaker()
-Session.configure(bind=engine)
-session = Session()
+client = MongoClient()
+db = client.fancontrol
+sd = db.sensordata
 
 too_old = datetime.datetime.today() - datetime.timedelta(hours=12)
-for row in session.query(SensorData).filter(SensorData.date_time < too_old):
-    session.delete(row)
-
-session.commit()
-session.close()
+sd.delete_many({'date_time': {'$lt': too_old}})
