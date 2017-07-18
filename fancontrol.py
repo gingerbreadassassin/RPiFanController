@@ -7,9 +7,8 @@ import hwpwm
 from pid import PIDController
 from fan import Fan
 import logging
-from fansqla import SensorData, Settings, StatData
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from datetime import datetime
+from pymongo import MongoClient
 
 # make debugging easier
 logging.basicConfig(level=logging.DEBUG, filename='/var/log/fancontrol.log')
@@ -26,13 +25,11 @@ def main():
         time.sleep(5)
         pi = pigpio.pi()
 
-    target_temp = bias = ki = kp = kd = 0
-
-    # connect to sqlite db:
-    engine = create_engine('sqlite:////var/www/fancontrol/fancontrol.db')
-    session = sessionmaker()
-    session.configure(bind=engine)
-    session = session()
+    # connect to mongodb:
+    client = MongoClient()
+    db = client.fancontrol
+    settings = db.settings.find_one()
+    sensordata = db.sensordata
 
     # fans:
     in141 = Fan(pi, 1, 7)
@@ -42,21 +39,11 @@ def main():
     ex120 = Fan(pi, 22)
     pump = Fan(pi, 3, 4)
 
-    # update user settings
-    for setting in session.query(Settings):
-        bias = setting.bias
-        man_dc = setting.man_dc
-        use_pid = setting.use_pid
-        target_temp = setting.target
-        kp = setting.kp
-        ki = setting.ki
-        kd = setting.kd
-
     # create two PWM instances for intake and exhaust:
-    inzone = hwpwm.PWM(pi, 12, dcmin=(20 / bias))
+    inzone = hwpwm.PWM(pi, 12, dcmin=(20 / settings['bias']))
     exzone = hwpwm.PWM(pi, 19)
     inzone.setdc(50)
-    exzone.setdc(50 * bias)
+    exzone.setdc(50 * settings['bias'])
 
     # temp sensors:
     intrh = DHT22.sensor(pi, 14)
@@ -66,7 +53,7 @@ def main():
     time.sleep(0.1)
 
     # set up the PID controller
-    pid = PIDController(round(th.celsius()), target_temp, kp, ki, kd)
+    pid = PIDController(round(th.celsius()), settings['target'], settings['kp'], settings['ki'], settings['kd'])
 
     # record when last time data collection occurred to find delta t
     # for use in calculation of heat dissipation in watts
@@ -154,7 +141,23 @@ def main():
         if w < 0:
             w = 0
 
-        return it, ih, ot1, orh, ot2, wt, ir1, ir2, or1, or2, or3, p, w
+        return {'date_time': datetime.utcnow(),
+                'exdc': (exzone.dc / 10000),
+                'exhum': orh,
+                'exrpm1': or1,
+                'exrpm2': or2,
+                'exrpm3': or3,
+                'extemp1': ot1,
+                'extemp2': ot2,
+                'indc': (inzone.dc / 10000),
+                'inhum': ih,
+                'inrpm1': ir1,
+                'inrpm2': ir2,
+                'intemp': it,
+                'prpm': p,
+                'target': settings['target'],
+                'watts': w,
+                'wtemp': wt}
 
     # trigger the AM2301 sensors, as first reading is always -999:
     intrh.trigger()
@@ -170,112 +173,89 @@ def main():
         start = time.time()
 
         # update the settings to reflect user changes:
-        for setting in session.query(Settings):
-            bias = setting.bias
-            man_dc = setting.man_dc
-            use_pid = setting.use_pid
-            target_temp = setting.target
-            kp = setting.kp
-            ki = setting.ki
-            kd = setting.kd
+        settings = db.settings.find_one()
 
         # collect readings from sensors:
         datum = collect()
+        sensordata.insert_one(datum)
+
         lastrun = time.time()
 
-        # set up the next row of sensor data:
-        sensordata = SensorData(datum)
-        sensordata.indc = (inzone.dc / 10000)
-        sensordata.exdc = (exzone.dc / 10000)
-        sensordata.target = target_temp
+        stats = db.statdata.find_one()
+        stats['samples'] = stats['samples'] + 1
+        stats['intemp_tot'] = datum['intemp'] + stats['intemp_tot']
+        stats['intemp_avg'] = stats['intemp_tot'] / stats['samples']
+        stats['inhum_tot'] = datum['inhum'] + stats['inhum_tot']
+        stats['inhum_avg'] = stats['inhum_tot'] / stats['samples']
+        stats['extemp1_tot'] = datum['extemp1'] + stats['extemp1_tot']
+        stats['extemp1_avg'] = stats['extemp1_tot'] / stats['samples']
+        stats['exhum_tot'] = datum['exhum'] + stats['exhum_tot']
+        stats['exhum_avg'] = stats['exhum_tot'] / stats['samples']
+        stats['extemp2_tot'] = datum['extemp2'] + stats['extemp2_tot']
+        stats['extemp2_avg'] = stats['extemp2_tot'] / stats['samples']
+        stats['wtemp_tot'] = datum['wtemp'] + stats['wtemp_tot']
+        stats['wtemp_avg'] = stats['wtemp_tot'] / stats['samples']
+        stats['watts_tot'] = datum['watts'] + stats['watts_tot']
+        stats['watts_avg'] = stats['watts_tot'] / stats['samples']
+        # intemp
+        if stats['intemp_min'] > datum['intemp']:
+            stats['intemp_min'] = datum['intemp']
+        if stats['intemp_max'] < datum['intemp']:
+            stats['intemp_max'] = datum['intemp']
 
-        # add the next row of sensor reading data:
-        session.add(sensordata)
+        # inhum
+        if stats['inhum_min'] > datum['inhum']:
+            stats['inhum_min'] = datum['inhum']
+        if stats['inhum_max'] < datum['inhum']:
+            stats['inhum_max'] = datum['inhum']
 
-        # update the statistical data:
-        for stat in session.query(StatData):
-            stat.samples = stat.samples + 1
-            stat.intemp_tot = sensordata.intemp + stat.intemp_tot
-            stat.intemp_avg = stat.intemp_tot / stat.samples
-            stat.inhum_tot = sensordata.inhum + stat.inhum_tot
-            stat.inhum_avg = stat.inhum_tot / stat.samples
-            stat.extemp1_tot = sensordata.extemp1 + stat.extemp1_tot
-            stat.extemp1_avg = stat.extemp1_tot / stat.samples
-            stat.exhum_tot = sensordata.exhum + stat.exhum_tot
-            stat.exhum_avg = stat.exhum_tot / stat.samples
-            stat.extemp2_tot = sensordata.extemp2 + stat.extemp2_tot
-            stat.extemp2_avg = stat.extemp2_tot / stat.samples
-            stat.wtemp_tot = sensordata.wtemp + stat.wtemp_tot
-            stat.wtemp_avg = stat.wtemp_tot / stat.samples
-            stat.watts_tot = sensordata.watts + stat.watts_tot
-            stat.watts_avg = stat.watts_tot / stat.samples
-            # intemp
-            if stat.intemp_min > sensordata.intemp:
-                stat.intemp_min = sensordata.intemp
-            if stat.intemp_max < sensordata.intemp:
-                stat.intemp_max = sensordata.intemp
+        # extemp1
+        if stats['extemp1_min'] > datum['extemp1']:
+            stats['extemp1_min'] = datum['extemp1']
+        if stats['extemp1_max'] < datum['extemp1']:
+            stats['extemp1_max'] = datum['extemp1']
 
-            # inhum
-            if stat.inhum_min > sensordata.inhum:
-                stat.inhum_min = sensordata.inhum
-            if stat.inhum_max < sensordata.inhum:
-                stat.inhum_max = sensordata.inhum
+        # exhum
+        if stats['exhum_min'] > datum['exhum']:
+            stats['exhum_min'] = datum['exhum']
+        if stats['exhum_max'] < datum['exhum']:
+            stats['exhum_max'] = datum['exhum']
 
-            # extemp1
-            if stat.extemp1_min > sensordata.extemp1:
-                stat.extemp1_min = sensordata.extemp1
-            if stat.extemp1_max < sensordata.extemp1:
-                stat.extemp1_max = sensordata.extemp1
+        # extemp2
+        if stats['extemp2_min'] > datum['extemp2']:
+            stats['extemp2_min'] = datum['extemp2']
+        if stats['extemp2_max'] < datum['extemp2']:
+            stats['extemp2_max'] = datum['extemp2']
 
-            # exhum
-            if stat.exhum_min > sensordata.exhum:
-                stat.exhum_min = sensordata.exhum
-            if stat.exhum_max < sensordata.exhum:
-                stat.exhum_max = sensordata.exhum
+        # wtemp
+        if stats['wtemp_min'] > datum['wtemp']:
+            stats['wtemp_min'] = datum['wtemp']
+        if stats['wtemp_max'] < datum['wtemp']:
+            stats['wtemp_max'] = datum['wtemp']
 
-            # extemp2
-            if stat.extemp2_min > sensordata.extemp2:
-                stat.extemp2_min = sensordata.extemp2
-            if stat.extemp2_max < sensordata.extemp2:
-                stat.extemp2_max = sensordata.extemp2
+        # watts
+        if stats['watts_min'] > datum['watts']:
+            stats['watts_min'] = datum['watts']
+        if stats['watts_max'] < datum['watts']:
+            stats['watts_max'] = datum['watts']
 
-            # wtemp
-            if stat.wtemp_min > sensordata.wtemp:
-                stat.wtemp_min = sensordata.wtemp
-            if stat.wtemp_max < sensordata.wtemp:
-                stat.wtemp_max = sensordata.wtemp
-
-            # watts
-            if stat.watts_min > sensordata.watts:
-                stat.watts_min = sensordata.watts
-            if stat.watts_max < sensordata.watts:
-                stat.watts_max = sensordata.watts
-
-            session.commit()
-
-            if use_pid:
-                dc = pid.getoutput(datum[5])
-            else:
-                dc = man_dc
-
-            inzone.setdc(dc)
-            exzone.setdc(dc * bias)
+        db.statdata.replace_one({'_id': stats['_id']}, stats)
 
         # update PID controller:
-        pid.target = target_temp
-        pid.kp = kp
-        pid.ki = ki
-        pid.kd = kd
+        pid.target = settings['target']
+        pid.kp = settings['kp']
+        pid.ki = settings['ki']
+        pid.kd = settings['kd']
 
         # get the new duty cycle:
-        if use_pid:
-            dc = pid.getoutput(datum[5])
+        if settings['use_pid']:
+            dc = pid.getoutput(datum['wtemp'])
         else:
-            dc = man_dc
+            dc = settings['mandc']
 
         # set the zone fan speeds:
         inzone.setdc(dc)
-        exzone.setdc(dc * bias)
+        exzone.setdc(dc * settings['bias'])
 
         # make sure this whole process takes at least 3 seconds:
         stop = time.time()
