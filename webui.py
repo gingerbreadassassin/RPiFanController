@@ -3,16 +3,19 @@ from flask import Flask, render_template
 # from markupsafe import Markup
 # from scipy.signal import savgol_filter
 # from fandb import SensorData
-# import datetime
+import datetime
 # import pytz
 # from plotly.offline import plot
 # from plotly.graph_objs import Scattergl
 from pymongo import MongoClient
+import gviz_api
 
 client = MongoClient()
 db = client.fancontrol
+sd = db.sensordata
 
 app = Flask(__name__)
+# app.config(debug=True)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/www/fancontrol/fancontrol.db'
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 'False'
 # db = SQLAlchemy(app)
@@ -92,8 +95,28 @@ app = Flask(__name__)
 #     fig = plot(data, output_type='div')
 #
 #     return render_template('plotly.html', div_placeholder=Markup(fig))
+@app.route("/getdata")
+def getdata():
+    data = []
+
+    recent = datetime.datetime.today() - datetime.timedelta(seconds=30)
+    for r in sd.find({'date_time': {'$gt': recent}}):
+        data.append({'date_time': r['date_time'], 'wtemp': r['wtemp']})
+
+    description = {'date_time': ('datetime', "Date"),
+                   'wtemp': ('number', 'Water Temp')}
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(data)
+
+    # return "{}\n\n{}".format("Content-type: text/plain",
+    #                          data_table.ToJSon())
+    return data_table.ToJSon()
 
 
+@app.route("/")
+def gviz():
+    return render_template('gviz.html')
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80, debug=True)
+# if __name__ == "__main__":
+#     app.run(host='0.0.0.0', port=80, debug=True)

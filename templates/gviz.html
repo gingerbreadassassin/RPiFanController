@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Google Charts!</title>
+
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+    <script type='text/javascript'>
+
+    google.charts.load('current', {
+        callback: function() {
+
+            drawChart();
+            setInterval(drawChart, 10000);
+
+            function drawChart() {
+                $.ajax({
+                    url: 'fancontrol/getdata',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (response) {
+                        var data = response;
+                        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+                        chart.draw(data);
+                    }
+                });
+            }
+        },
+        packages: ['corechart']
+    })
+
+
+    </script>
+</head>
+<body>
+    <div id="chart_div"  style="width: 900px; height: 300px;"></div>
+</body>
+</html>
