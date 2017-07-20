@@ -14,7 +14,7 @@
         callback: function() {
 
             drawChart();
-            setInterval(drawChart, 10000);
+            setInterval(drawChart, 5000);
 
             function drawChart() {
                 $.ajax({
@@ -22,7 +22,7 @@
                     type: 'GET',
                     dataType: 'json',
                     success: function (response) {
-                        var data = response;
+                        var data = new google.visualization.DataTable(response);
                         var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
                         chart.draw(data);
                     }
