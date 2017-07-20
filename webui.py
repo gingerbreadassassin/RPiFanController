@@ -112,6 +112,7 @@ def getdata():
     # return "{}\n\n{}".format("Content-type: text/plain",
     #                          data_table.ToJSon())
     return data_table.ToJSon()
+    # return data_table.ToJSonResponse()
 
 
 @app.route("/")
