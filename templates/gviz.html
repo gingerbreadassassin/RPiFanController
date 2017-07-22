@@ -18,6 +18,21 @@
                        {id: 'wtemp', label: 'Water Temp', type: 'number'}]
             });
 
+            var options = {
+                            hAxis: {
+                              title: "Date",
+                              format: 'HH:mm' },
+                            vAxis: {
+                              title: 'Celsius',
+                              baseline: 0,
+                              maxValue: 100
+                            },
+                            curveType: 'function'  //Makes line curved
+                        };
+
+            var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+            chart.draw(d1, options);
+
             var d2 = new google.visualization.DataTable();
 
             var keys = [];
@@ -50,21 +65,8 @@
                         }
 
                         d1 = google.visualization.data.join(d1, d2, 'full', keys, [], []);
-
-                        var options = {
-                            hAxis: {
-                              title: "Date",
-                              format: 'HH:mm' },
-                            vAxis: {
-                              title: 'Celsius',
-                              baseline: 0,
-                              maxValue: 100
-                            },
-                            curveType: 'function'  //Makes line curved
-                        };
-
                         dateFormat.format(d1, 0);
-                        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+
                         chart.draw(d1, options);
 
                         t = Date.now();
