@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import datetime
 from pymongo import MongoClient
 import gviz_api
@@ -8,13 +8,14 @@ db = client.fancontrol
 sd = db.sensordata
 
 app = Flask(__name__)
+app.debug = True
 
 
-@app.route("/getdata")
-def getdata():
+@app.route("/getdata/<int:ms>")
+def getdata(ms):
     data = []
 
-    recent = datetime.datetime.today() - datetime.timedelta(seconds=30)
+    recent = datetime.datetime.today() - datetime.timedelta(milliseconds=ms)
     for r in sd.find({'date_time': {'$gt': recent}}):
         data.append({'date_time': r['date_time'], 'wtemp': r['wtemp']})
 
@@ -25,6 +26,18 @@ def getdata():
     data_table.LoadData(data)
 
     return data_table.ToJSon()
+
+
+@app.route("/settings/<settings>", methods=['GET', 'POST'])
+def setmandc(settings):
+    sets = db.settings.find_one()
+    if request.method == 'GET':
+        sets.pop('_id')
+        return sets
+
+    else:
+        # TODO: parse settings from json
+        db.settings.replace_one({'_id': sets['_id']}, sets)
 
 
 @app.route("/")

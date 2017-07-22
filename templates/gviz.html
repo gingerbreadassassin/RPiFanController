@@ -13,18 +13,52 @@
     google.charts.load('current', {
         callback: function() {
 
+            var d = new google.visualization.DataTable({
+                cols: [{id: 'date_time', label: 'Date', type: 'datetime'},
+                       {id: 'wtemp', label: 'Water Temp', type: 'number'}]
+            });
+
+            var keys = [];
+            for (var i = 0; i < d.getNumberOfColumns(); i++) {
+                keys.push([i, i]);
+            }
+
+            var t = Date.now();
+
+            $.ajax({
+                url: 'getdata/10800000',
+                type: 'GET',
+                success:function(resp) {
+                    d = google.visualization.data.join(d, new google.visualization.DataTable(resp), 'full', keys, [], []);
+                }
+            });
+
             drawChart();
+
             setInterval(drawChart, 5000);
+
 
             function drawChart() {
                 $.ajax({
-                    url: 'getdata',
+                    url: 'getdata/'+(Date.now() - t).toString(),
                     type: 'GET',
                     dataType: 'json',
                     success: function (response) {
-                        var data = new google.visualization.DataTable(response);
+                        d = google.visualization.data.join(d, new google.visualization.DataTable(response), 'full', keys, [], []);
+                        var options = {
+                            hAxis: {
+                              title: "Date",
+                              format: 'dd-MMM-yyyy HH:mm' },
+                            vAxis: {
+                              title: 'Celsius',
+                              baseline: 0,
+                              maxValue: 100
+                            },
+                            curveType: 'function'  //Makes line curved
+                          };
                         var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-                        chart.draw(data);
+                        chart.draw(d, options);
+                        t = Date.now();
                     }
                 });
             }
@@ -34,8 +68,23 @@
 
 
     </script>
+
+    <!-- FONT
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+    <!-- CSS
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="stylesheet" href="/static/css/normalize.css">
+    <link rel="stylesheet" href="/static/css/skeleton.css">
+    <!-- Favicon
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+
 </head>
+
 <body>
-    <div id="chart_div"  style="width: 900px; height: 300px;"></div>
+<h1>RPI Fan Controller</h1>
+<div id="chart_div"  style="width: 900px; height: 300px;"></div>
 </body>
+
 </html>
