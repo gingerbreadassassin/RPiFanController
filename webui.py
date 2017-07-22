@@ -17,15 +17,16 @@ def getdata(ms):
 
     recent = datetime.datetime.today() - datetime.timedelta(milliseconds=ms)
     for r in sd.find({'date_time': {'$gt': recent}}):
-        data.append({'date_time': r['date_time'], 'wtemp': r['wtemp']})
+        data.append({'date_time': r['date_time'], 'wtemp': r['wtemp'], 'target': r['target']})
 
     description = {'date_time': ('datetime', "Date"),
-                   'wtemp': ('number', 'Water Temp')}
+                   'wtemp': ('number', 'Water Temp'),
+                   'target': ('number', 'Target Temp')}
 
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(data)
 
-    return data_table.ToJSon()
+    return data_table.ToJSon(columns_order=('date_time', 'wtemp', 'target'))
 
 
 @app.route("/settings/<settings>", methods=['GET', 'POST'])
