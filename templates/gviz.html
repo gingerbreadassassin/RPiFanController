@@ -12,19 +12,20 @@
 
     google.charts.load('current', {
         callback: function() {
+            var firstrun = true;
 
             var d1 = new google.visualization.DataTable({
                 cols: [{id: 'date_time', label: 'Date', type: 'datetime'},
                        {id: 'wtemp', label: 'Water Temp', type: 'number'},
-                       {id: 'target', label: 'Target Temp', type: 'number'}]
+                       {id: 'target', label: 'Target Temp', type: 'number'},
+                       {id: 'indc', label: 'Intake Fan Speed %', type: 'number'}]
             });
 
             var options = {
                             hAxis: {
-                              title: "Date",
                               format: 'HH:mm' },
                             vAxis: {
-                              title: 'Celsius',
+                              title: 'Celsius / Percent',
                               baseline: 0,
                               maxValue: 100
                             },
@@ -65,6 +66,16 @@
                             d2.setValue(i, 0, d);
                         }
 
+                        if (!firstrun) {
+                            for (var x = 0; x < d2.getNumberOfRows(); x++) {
+                                d1.removeRow(x);
+                            }
+                        }
+
+                        else {
+                            firstrun = false;
+                        }
+
                         d1 = google.visualization.data.join(d1, d2, 'full', keys, [], []);
                         dateFormat.format(d1, 0);
 
@@ -78,6 +89,43 @@
         packages: ['corechart']
     })
 
+    </script>
+
+    <script type="text/javascript">
+        function update() {
+            $.ajax({
+                url: 'settings/',
+                type: 'GET',
+                dataType: 'json',
+                success: function (resp) {
+                    document.getElementById("bias").value = resp.bias;
+                    document.getElementById("kp").value = resp.kp;
+                    document.getElementById("ki").value  = resp.ki;
+                    document.getElementById("kd").value  = resp.kd;
+                    document.getElementById("target").value  = resp.target;
+                    document.getElementById("use_pid").checked  = resp.use_pid;
+                    document.getElementById("mandc").value  = resp.mandc;
+                }
+            });
+        }
+
+        function sub() {
+            var data = {};
+            data.bias = document.getElementById("bias").value;
+            data.kp = document.getElementById("kp").value;
+            data.ki = document.getElementById("ki").value;
+            data.kd = document.getElementById("kd").value;
+            data.target = document.getElementById("target").value;
+            data.use_pid = document.getElementById("use_pid").checked;
+            data.mandc = document.getElementById("mandc").value;
+            $.ajax({
+                url: 'settings/',
+                type: 'POST',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                contentType: 'application/json; charset=utf-8'
+            });
+        }
 
     </script>
 
@@ -96,7 +144,23 @@
 
 <body>
 <h1>RPI Fan Controller</h1>
+<div class="container">
+
+</div>
 <div id="chart_div"  style="width: 900px; height: 300px;"></div>
+<div id="settings">
+    <form action="settings/">
+        Exhaust vs Intake: <input type="number" name="bias" id="bias"><br>
+        PID P coefficient: <input type="number" name="kp" id="kp"><br>
+        PID I coefficient: <input type="number" name="ki" id="ki"><br>
+        PID D coefficient: <input type="number" name="kd" id="kd"><br>
+        Target Water Temp: <input type="number" name="target" id="target"><br>
+        Automatic Fan Ctl: <input type="checkbox" name="use_pid" id="use_pid"><br>
+        Manual Fan Speed%: <input type="range" name="mandc" id="mandc" min="20" max="100" step="5"><br>
+        <button type="button" onclick="update();">Update</button>
+        <button type="button" onclick="sub();">Submit</button>
+    </form>
+</div>
 </body>
 
 </html>
