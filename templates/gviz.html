@@ -48,6 +48,26 @@
 
             var dateFormat = new google.visualization.DateFormat({formatType: 'long', timeZone: -n});
 
+            $.ajax({
+                    url: 'getdata/'+(Date.now() - t).toString(),
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (resp) {
+                        d2 = new google.visualization.DataTable(resp);
+
+                        for (var i = 0; i < d2.getNumberOfRows(); i++) {
+                            var d = d2.getValue(i, 0);
+                            d.setHours(d.getHours() - n);
+                            d2.setValue(i, 0, d);
+                        }
+
+                        d1 = google.visualization.data.join(d1, d2, 'full', keys, [], []);
+                        dateFormat.format(d1, 0);
+                    }
+            });
+
+            t = Date.now();
+
             drawChart();
 
             setInterval(drawChart, 5000);
