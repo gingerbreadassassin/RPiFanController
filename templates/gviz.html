@@ -27,9 +27,10 @@
                             vAxis: {
                               title: 'Celsius / Percent',
                               baseline: 0,
-                              maxValue: 100
-                            },
-                            curveType: 'function'  //Makes line curved
+                              viewWindow: {
+                                  max: 100
+                              }
+                            }
                         };
 
             var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
@@ -143,7 +144,10 @@
                 type: 'POST',
                 data: JSON.stringify(data),
                 dataType: 'json',
-                contentType: 'application/json; charset=utf-8'
+                contentType: 'application/json; charset=utf-8',
+                success: function() {
+                    alert('Settings applied successfully!')
+                }
             });
         }
 
@@ -163,22 +167,43 @@
 </head>
 
 <body>
-<h1>RPI Fan Controller</h1>
+<h1 style="position: absolute;left: 20px;top: 10px;">RPI Fan Controller</h1>
 <div class="container">
 
 </div>
-<div id="chart_div"  style="width: 900px; height: 300px;"></div>
-<div id="settings">
-    <form action="settings/">
-        Exhaust vs Intake: <input type="number" name="bias" id="bias"><br>
-        PID P coefficient: <input type="number" name="kp" id="kp"><br>
-        PID I coefficient: <input type="number" name="ki" id="ki"><br>
-        PID D coefficient: <input type="number" name="kd" id="kd"><br>
-        Target Water Temp: <input type="number" name="target" id="target"><br>
-        Automatic Fan Ctl: <input type="checkbox" name="use_pid" id="use_pid"><br>
-        Manual Fan Speed%: <input type="range" name="mandc" id="mandc" min="20" max="100" step="5"><br>
-        <button type="button" onclick="update();">Update</button>
-        <button type="button" onclick="sub();">Submit</button>
+<div id="chart_div"  style="width: 900px; height: 400px;position: absolute;left: 20px;top: 90px;"></div>
+<div id="settings" style="position: absolute;width: 400px;height: 390px;top: 90px;left: 1100px;">
+    <form style="display: table">
+        <p style="display: table-row">
+            <label for="bias" style="display: table-cell">Exhaust vs Intake:</label>
+            <input type="number" name="bias" id="bias" style="display: table-cell">
+        </p>
+        <p style="display: table-row">
+            <label for="kp" style="display: table-cell">PID P coefficient:</label>
+            <input type="number" name="kp" id="kp" style="display: table-cell">
+        </p>
+        <p style="display: table-row">
+            <label for="ki" style="display: table-cell">PID I coefficient:</label>
+            <input type="number" name="ki" id="ki" style="display: table-cell">
+        </p>
+        <p style="display: table-row">
+            <label for="kd" style="display: table-cell">PID D coefficient:</label>
+            <input type="number" name="kd" id="kd" style="display: table-cell">
+        </p>
+        <p style="display: table-row">
+            <label for="target" style="display: table-cell">Target Water Temp:</label>
+            <input type="number" name="target" id="target" style="display: table-cell">
+        </p>
+        <p style="display: table-row">
+            <label for="use_pid" style="display: table-cell">Automatic Fan Ctl:</label>
+            <input type="checkbox" name="use_pid" id="use_pid" style="display: table-cell;position: relative;top: 5px;">
+        </p>
+        <p style="display: table-row">
+            <label for="mandc" style="display: table-cell">Manual Fan Speed%:</label>
+            <input type="range" name="mandc" id="mandc" min="20" max="100" step="5" style="display: table-cell;position: relative;top: 18px;">
+        </p>
+        <button type="button" onclick="update();" style="position: relative;top: 18px;left: 60px;">Update</button>
+        <button type="button" onclick="sub();" style="position: relative;top: -30px;left: 210px;">Submit</button>
     </form>
 </div>
 </body>
