@@ -206,6 +206,30 @@
                     }
                 })
         }
+
+        getrtd();
+        setInterval(getrtd, 1000);
+
+        function getrtd() {
+            $.ajax({
+                url: 'rtd/',
+                type: 'GET',
+                dataType: 'json',
+                success: function (resp) {
+                    document.getElementById("int").innerText = resp[0].intemp;
+                    document.getElementById("inh").innerText = resp[0].inhum;
+                    document.getElementById("inr1").innerText = resp[0].inrpm1;
+                    document.getElementById("inr2").innerText = resp[0].inrpm2;
+                    document.getElementById("ext1").innerText = resp[0].extemp1;
+                    document.getElementById("exh").innerText = resp[0].exhum;
+                    document.getElementById("ex1r").innerText = resp[0].exrpm1;
+                    document.getElementById("ex2r").innerText = resp[0].exrpm2;
+                    document.getElementById("ext2").innerText = resp[0].extemp2;
+                    document.getElementById("ex3r").innerText = resp[0].exrpm3;
+                    document.getElementById("prpm").innerText = resp[0].prpm;
+                }
+            })
+        }
     </script>
 
     <!-- FONT
@@ -223,8 +247,8 @@
 
 <body>
 <h1 style="position: absolute;left: 20px;top: 10px;">RPI Fan Controller</h1>
-<div id="chart_div"  style="width: 900px; height: 400px;position: absolute;left: 20px;top: 220px;"></div>
-<div id="settings" style="position: absolute;width: 400px;height: 390px;top: 250px;left: 1030px;">
+<div id="chart_div"  style="width: 1450px; height: 700px;position: absolute;left: 10px;top: 130px;"></div>
+<div id="settings" style="position: absolute;width: 400px;height: 390px;top: 270px;left: 1480px;">
     <form style="display: table">
         <p style="display: table-row">
             <label for="bias" style="display: table-cell">Exhaust vs Intake:</label>
@@ -258,9 +282,12 @@
         <button type="button" onclick="sub();" style="position: relative;top: -30px;left: 210px;">Submit</button>
     </form>
 </div>
-<div style="position: absolute;top: 70px;left: 35px;">
-<style>th {text-align: center;}</style>
-    <table id="statistics" style="justify: center">
+<div style="position: absolute;top: 780px;left: 256px;">
+    <style>
+        th {text-align: center;}
+        td {text-align: center;}
+    </style>
+    <table id="statistics" style="justify-content: center">
 		<tr>
 			<th colspan="3">Intake Temperature</th>
 			<th colspan="3">Intake Humidity</th>
@@ -294,8 +321,8 @@
 			<td>Max</td>
 		</tr>
 		<tr>
-			<td id="itn"></td>
-			<td id="ita"></td>
+			<td id = "itn"></td>
+			<td id = "ita"></td>
 			<td id = "itx" style="border-right: 1px solid #E1E1E1"></td>
 			<td id = "ihn"></td>
 			<td id = "iha"></td>
@@ -316,7 +343,42 @@
 			<td id = "wa"></td>
 			<td id = "wx"></td>
 	</table>
-    <button id="reset" type="button" onclick="resetstats();" style="position: absolute;left: 1294px;top: 35px;">Reset</button>
+    <button id="reset" type="button" onclick="resetstats();" style="position: relative;left: 1294px;top: -95px;">Reset</button>
+</div>
+<div style="position: absolute;left: 10px;top: 70px;">
+    <style>
+        th {text-align-all: center;}
+        td {text-align: center;}
+    </style>
+
+    <table id="realtimedata" style="justify-content: center">
+        <tr>
+            <th>Intake Temperature</th>
+            <th>Intake Relative Humidity</th>
+            <th>Intake Fan1 RPM</th>
+            <th>Intake Fan2 RPM</th>
+            <th>Top Exhaust Temperature</th>
+            <th>Top Exhaust Relative Humidity</th>
+            <th>Top Exhaust Fan 1 RPM</th>
+            <th>Top Exhaust Fan 2 RPM</th>
+            <th>Rear Exhaust Temperature</th>
+            <th>Rear Exhaust Fan RPM</th>
+            <th>Pump RPM</th>
+        </tr>
+        <tr>
+            <td id="int" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="inh" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="inr1" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="inr2" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="ext1" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="exh" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="ex1r" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="ex2r" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="ext2" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="ex3r" style="border-right: 1px solid #E1E1E1"></td>
+            <td id="prpm"></td>
+        </tr>
+    </table>
 </div>
 </body>
 

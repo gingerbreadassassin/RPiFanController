@@ -30,6 +30,17 @@ def getdata(ms):
     return data_table.ToJSon(columns_order=('date_time', 'wtemp', 'target', 'indc'))
 
 
+@app.route("/rtd/")
+def realtimedata():
+    data = []
+
+    for r in sd.find().skip(sd.count() - 1):
+        r.pop('_id')
+        data.append(r)
+
+    return jsonify(data)
+
+
 @app.route("/settings/", methods=['GET', 'POST'])
 def getsetsets():
     sets = db.settings.find_one()
