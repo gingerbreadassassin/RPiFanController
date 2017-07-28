@@ -51,6 +51,49 @@ def getsetsets():
         return '', 204
 
 
+@app.route("/stats/", methods=['GET', 'POST'])
+def getstats():
+    stats = db.statdata.find_one()
+    if request.method == 'GET':
+        stats.pop('_id')
+        return jsonify(stats)
+
+    else:
+        stats = {'_id': stats['_id'],
+                 'exhum_avg': 0.0,
+                 'exhum_max': 0.0,
+                 'exhum_min': 100.0,
+                 'exhum_tot': 0.0,
+                 'extemp1_avg': 0.0,
+                 'extemp1_max': 0.0,
+                 'extemp1_min': 100.0,
+                 'extemp1_tot': 0.0,
+                 'extemp2_avg': 0.0,
+                 'extemp2_max': 0.0,
+                 'extemp2_min': 100.0,
+                 'extemp2_tot': 0.0,
+                 'inhum_avg': 0.0,
+                 'inhum_max': 0.0,
+                 'inhum_min': 100.0,
+                 'inhum_tot': 0.0,
+                 'intemp_avg': 0.0,
+                 'intemp_max': 0.0,
+                 'intemp_min': 100.0,
+                 'intemp_tot': 0.0,
+                 'samples': 0,
+                 'watts_avg': 0.0,
+                 'watts_max': 0.0,
+                 'watts_min': 100.0,
+                 'watts_tot': 0.0,
+                 'wtemp_avg': 0.0,
+                 'wtemp_max': 0.0,
+                 'wtemp_min': 100.0,
+                 'wtemp_tot': 0.0}
+
+        db.statdata.replace_one({'_id': stats['_id']}, stats)
+        return '', 204
+
+
 @app.route("/")
 def gviz():
     return render_template('gviz.html')

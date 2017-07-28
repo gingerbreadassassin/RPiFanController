@@ -113,6 +113,7 @@
     </script>
 
     <script type="text/javascript">
+		update();
         function update() {
             $.ajax({
                 url: 'settings/',
@@ -153,6 +154,60 @@
 
     </script>
 
+    <script>
+
+        getstats();
+        setInterval(getstats, 6000);
+        function getstats() {
+            $.ajax({
+                url:'stats/',
+                type: 'GET',
+                dataType: 'json',
+                success: function(resp) {
+                    document.getElementById("itn").innerText = resp.intemp_min.toFixed(1);
+                    document.getElementById("ita").innerText= resp.intemp_avg.toFixed(1);
+                    document.getElementById("itx").innerText = resp.intemp_max.toFixed(1);
+                    document.getElementById("ihn").innerText = resp.inhum_min.toFixed(1);
+                    document.getElementById("iha").innerText = resp.inhum_avg.toFixed(1);
+                    document.getElementById("ihx").innerText = resp.inhum_max.toFixed(1);
+                    document.getElementById("et1n").innerText = resp.extemp1_min.toFixed(1);
+                    document.getElementById("et1a").innerText = resp.extemp1_avg.toFixed(1);
+                    document.getElementById("et1x").innerText= resp.extemp1_max.toFixed(1);
+                    document.getElementById("ehn").innerText = resp.exhum_min.toFixed(1);
+                    document.getElementById("eha").innerText = resp.exhum_avg.toFixed(1);
+                    document.getElementById("ehx").innerText = resp.exhum_max.toFixed(1);
+                    document.getElementById("et2n").innerText = resp.extemp2_min.toFixed(1);
+                    document.getElementById("et2a").innerText = resp.extemp2_avg.toFixed(1);
+                    document.getElementById("et2x").innerText = resp.extemp2_max.toFixed(1);
+                    document.getElementById("wtn").innerText = resp.wtemp_min.toFixed(1);
+                    document.getElementById("wta").innerText = resp.wtemp_avg.toFixed(1);
+                    document.getElementById("wtx").innerText = resp.wtemp_max.toFixed(1);
+                    document.getElementById("wn").innerText = resp.watts_min.toFixed(1);
+                    document.getElementById("wa").innerText = resp.watts_avg.toFixed(1);
+                    document.getElementById("wx").innerText = resp.watts_max.toFixed(1);
+                }
+            })
+        }
+
+        function resetstats() {
+            document
+                .getElementById("reset")
+                .addEventListener("click", function(e) {
+                    if(! confirm("Do you really want to reset statistical history? (Cannot be undone!)")){
+                        e.preventDefault();
+                    } else{
+                        $.ajax({
+                            url:'stats/',
+                            type: 'POST',
+                            success: function () {
+                                alert('Statistical history reset!')
+                            }
+                        });
+                    }
+                })
+        }
+    </script>
+
     <!-- FONT
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
@@ -168,11 +223,8 @@
 
 <body>
 <h1 style="position: absolute;left: 20px;top: 10px;">RPI Fan Controller</h1>
-<div class="container">
-
-</div>
-<div id="chart_div"  style="width: 900px; height: 400px;position: absolute;left: 20px;top: 90px;"></div>
-<div id="settings" style="position: absolute;width: 400px;height: 390px;top: 90px;left: 1100px;">
+<div id="chart_div"  style="width: 900px; height: 400px;position: absolute;left: 20px;top: 220px;"></div>
+<div id="settings" style="position: absolute;width: 400px;height: 390px;top: 250px;left: 1030px;">
     <form style="display: table">
         <p style="display: table-row">
             <label for="bias" style="display: table-cell">Exhaust vs Intake:</label>
@@ -205,6 +257,66 @@
         <button type="button" onclick="update();" style="position: relative;top: 18px;left: 60px;">Update</button>
         <button type="button" onclick="sub();" style="position: relative;top: -30px;left: 210px;">Submit</button>
     </form>
+</div>
+<div style="position: absolute;top: 70px;left: 35px;">
+<style>th {text-align: center;}</style>
+    <table id="statistics" style="justify: center">
+		<tr>
+			<th colspan="3">Intake Temperature</th>
+			<th colspan="3">Intake Humidity</th>
+			<th colspan="3">Top Exhaust Temperature</th>
+			<th colspan="3">Top Exhaust Humidity</th>
+			<th colspan="3">Rear Exhaust Temperature</th>
+			<th colspan="3">Water Temperature</th>
+			<th colspan="3">Cooling Power</th>
+		</tr>
+		<tr>
+			<td>Min</td>
+			<td>Avg</td>
+			<td style="border-right: 1px solid #E1E1E1">Max</td>
+			<td>Min</td>
+			<td>Avg</td>
+			<td style="border-right: 1px solid #E1E1E1">Max</td>
+			<td>Min</td>
+			<td>Avg</td>
+			<td style="border-right: 1px solid #E1E1E1">Max</td>
+			<td>Min</td>
+			<td>Avg</td>
+			<td style="border-right: 1px solid #E1E1E1">Max</td>
+			<td>Min</td>
+			<td>Avg</td>
+			<td style="border-right: 1px solid #E1E1E1">Max</td>
+			<td>Min</td>
+			<td>Avg</td>
+			<td style="border-right: 1px solid #E1E1E1">Max</td>
+			<td>Min</td>
+			<td>Avg</td>
+			<td>Max</td>
+		</tr>
+		<tr>
+			<td id="itn"></td>
+			<td id="ita"></td>
+			<td id = "itx" style="border-right: 1px solid #E1E1E1"></td>
+			<td id = "ihn"></td>
+			<td id = "iha"></td>
+			<td id = "ihx" style="border-right: 1px solid #E1E1E1"></td>
+			<td id = "et1n"></td>
+			<td id = "et1a"></td>
+			<td id = "et1x" style="border-right: 1px solid #E1E1E1"></td>
+			<td id = "ehn"></td>
+			<td id = "eha"></td>
+			<td id = "ehx" style="border-right: 1px solid #E1E1E1"></td>
+			<td id = "et2n"></td>
+			<td id = "et2a"></td>
+			<td id = "et2x" style="border-right: 1px solid #E1E1E1"></td>
+			<td id = "wtn"></td>
+			<td id = "wta"></td>
+			<td id = "wtx" style="border-right: 1px solid #E1E1E1"></td>
+			<td id = "wn"></td>
+			<td id = "wa"></td>
+			<td id = "wx"></td>
+	</table>
+    <button id="reset" type="button" onclick="resetstats();" style="position: absolute;left: 1294px;top: 35px;">Reset</button>
 </div>
 </body>
 
